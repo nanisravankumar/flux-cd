@@ -1,0 +1,21 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: redis
+  namespace: cluster-config
+spec:
+  releaseName: redis
+  targetNamespace: redis
+  install:
+    createNamespace: true
+  interval: 5m0s
+  reconcileStrategy: ChartVersion
+  chart:
+    spec:
+      chart: redis
+      version: 17.11.4 # replace with the actual chart version you want
+      sourceRef:
+        kind: HelmRepository
+        name: redis
+        namespace: cluster-config
+
