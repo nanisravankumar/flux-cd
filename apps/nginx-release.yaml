@@ -20,4 +20,4 @@ spec:
   values:
     service:
       type: LoadBalancer
-    replicaCount: 2
+    replicaCount: 2 

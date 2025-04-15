@@ -8,4 +8,4 @@ spec:
   interval: 1m
   url: https://github.com/nanisravankumar/flux-cd.git
   ref:
-    branch: main
+    branch: main 

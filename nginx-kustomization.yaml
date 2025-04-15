@@ -12,4 +12,4 @@ spec:
     kind: GitRepository
     name: nginx-k8s
   targetNamespace: nginx
-  timeout: 2m
+  timeout: 2m 

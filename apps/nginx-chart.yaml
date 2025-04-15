@@ -6,4 +6,4 @@ metadata:
   namespace: cluster-config
 spec:
   interval: 10m0s
-  url: https://charts.bitnami.com/bitnami
+  url: https://charts.bitnami.com/bitnami 
