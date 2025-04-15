@@ -1,0 +1,11 @@
+# git-source.yaml
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: nginx-k8s
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/nanisravankumar/flux-cd.git
+  ref:
+    branch: main
