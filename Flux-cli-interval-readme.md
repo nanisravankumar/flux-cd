@@ -7,8 +7,10 @@ flux-system     flux-system     flux-k8s-multi-env@sha1:1ea78270        False   
 flux-system     podinfo-default flux-k8s-multi-env@sha1:b39f49d3        False           True    Applied revision: flux-k8s-multi-env@sha1:b39f49d3
 flux-system     podinfo-prod    flux-k8s-multi-env@sha1:b39f49d3        False           True    Applied revision: flux-k8s-multi-env@sha1:b39f49d3
 
-
 ```
+
+![image](https://github.com/user-attachments/assets/92e4002c-8c2a-4341-a74e-113963a0c094)
+
 
 ### 1. **GitRepository for Flux-System (`gotk-sync.yaml`)**
 
