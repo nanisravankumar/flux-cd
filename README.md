@@ -1,269 +1,204 @@
-Here’s a well-organized, step-by-step `README.md` file for your PoC using Flux CD with GitHub and Kubernetes:
+Sure! Below is a sample `README.md` that outlines the steps for transitioning from a single namespace (default) environment to multiple namespaces (default and prod) in an AKS Kubernetes cluster using FluxCD and Kustomize. It includes the necessary Flux commands, changes to repositories, and how to switch from the `master` branch to `flux-k8s-multi-env`.
 
 ---
 
-# 🚀 FluxCD PoC with GitHub and AKS K8s with Single Environment
+# Transition from Single Namespace to Multiple Namespaces (default, prod) in AKS Kubernetes with FluxCD
+# Switch from the master branch to flux-k8s-multi-env
 
-This Proof of Concept demonstrates how to set up [Flux CD](https://fluxcd.io) with GitHub for GitOps-based Kubernetes deployments.  
-We will be installing necessary tools, configuring GitHub integration, and deploying a sample application.
+This documentation outlines the steps to transition from using a single `default` namespace to multiple namespaces, specifically `default` and `prod`, in an Azure Kubernetes Service (AKS) cluster. It leverages FluxCD for GitOps and Kustomize for environment-specific overlays.
 
----
+## **Prerequisites**
 
-## 🔧 Step 1: Install Chocolatey (User/Portable Mode)
-
-1. Visit: [https://docs.chocolatey.org/en-us/choco/setup/#non-administrative-install](https://docs.chocolatey.org/en-us/choco/setup/#non-administrative-install)
-
-2. Open PowerShell **as current user (non-admin)**.
-
-3. Run the following to install Chocolatey:
-
-   ```powershell
-   $InstallDir='C:\ProgramData\chocoportable'
-   $env:ChocolateyInstall="$InstallDir"
-   Set-ExecutionPolicy Bypass -Scope Process -Force;
-   iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-   ```
+- An AKS cluster is already set up.
+- FluxCD is installed on the cluster.
+- GitHub repository with Kustomize configurations for Kubernetes deployments.
 
 ---
 
-## 🔧 Step 2: Install Flux CLI Using Chocolatey
+## **Steps to Transition to Multiple Environments with FluxCD**
 
-```powershell
-choco install flux
-```
-
-✅ To verify installation:
+### 1. **Create a New Git Branch for Multi-Env Support**
+Initially, the repository used the `master` branch for deployments. To manage both `default` and `prod` namespaces, create a new branch named `flux-k8s-multi-env`.
 
 ```bash
-flux --version
+# Create a new branch for multi-env setup
+git checkout master
+git checkout -b flux-k8s-multi-env
+git push origin flux-k8s-multi-env
 ```
 
 ---
 
-## 🔧 Step 3: Install Azure CLI and Required Extensions
+### 2. **Update `flux-system` GitRepository Resource**
+The FluxCD GitRepository resource for the `flux-system` is still pointing to the `master` branch. We need to change it to point to the `flux-k8s-multi-env` branch.
+
+#### Change the branch in the FluxCD GitRepository:
 
 ```bash
-az aks install-cli
+# Suspend the GitRepository to avoid auto-reconciliation during changes
+flux suspend source git flux-system -n flux-system
 
-az provider register --namespace Microsoft.Kubernetes
-az provider register --namespace Microsoft.ContainerService
-az provider register --namespace Microsoft.KubernetesConfiguration
+# Edit the GitRepository resource
+kubectl edit gitrepository flux-system -n flux-system
+```
 
-az provider show -n Microsoft.KubernetesConfiguration -o table
+Update the `spec.ref.branch` field:
 
-az extension add -n k8s-configuration
-az extension add -n k8s-extension
+```yaml
+spec:
+  ref:
+    branch: flux-k8s-multi-env
+```
 
-az extension update -n k8s-configuration
-az extension update -n k8s-extension
+Save the changes.
 
-az extension list -o table
+#### Resume the GitRepository:
+
+```bash
+flux resume source git flux-system -n flux-system
+```
+
+#### Reconcile the changes:
+
+```bash
+flux reconcile source git flux-system -n flux-system
+```
+
+This updates the FluxCD source to pull from the `flux-k8s-multi-env` branch.
+
+---
+
+### 3. **Update the PodInfo GitRepository Resource**
+Similarly, update the `podinfo` GitRepository resource to point to the new `flux-k8s-multi-env` branch.
+
+#### Change the branch in the `podinfo` GitRepository:
+
+```bash
+# Suspend the GitRepository to avoid auto-reconciliation during changes
+flux suspend source git podinfo -n flux-system
+
+# Edit the GitRepository resource for podinfo
+kubectl edit gitrepository podinfo -n flux-system
+```
+
+Update the `spec.ref.branch` field:
+
+```yaml
+spec:
+  ref:
+    branch: flux-k8s-multi-env
+```
+
+Save the changes.
+
+#### Resume the `podinfo` GitRepository:
+
+```bash
+flux resume source git podinfo -n flux-system
+```
+
+#### Reconcile the changes:
+
+```bash
+flux reconcile source git podinfo -n flux-system
+```
+
+This ensures that FluxCD is using the correct branch for `podinfo`.
+
+---
+
+### 4. **Update Kustomization Resources**
+
+To apply both `default` and `prod` namespaces, create separate Kustomization resources. Ensure the `flux-system` deployment is updated accordingly.
+
+#### `clusters/my-cluster/podinfo-default-kustomisation.yaml`
+```yaml
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: podinfo-default
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  path: ./kustomize/overlays/default
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: podinfo
+  targetNamespace: default
+```
+
+#### `clusters/my-cluster/podinfo-prod-kustomisation.yaml`
+```yaml
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: podinfo-prod
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  path: ./kustomize/overlays/prod
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: podinfo
+  targetNamespace: prod
+```
+
+Save these files under the `clusters/my-cluster/` directory.
+
+---
+
+### 5. **Change FluxCD Synchronization Settings**
+
+Ensure the `flux-system` synchronization configuration (`gotk-sync.yaml`) is also updated to reflect the new branch:
+
+```yaml
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  chart:
+    spec:
+      chart: flux-system
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+  interval: 5m
+  values:
+    ref:
+      branch: flux-k8s-multi-env
 ```
 
 ---
 
-## 🔐 Step 4: Create GitHub Personal Access Token (PAT)
+### 6. **Verify the Deployment**
 
-1. Go to: [https://github.com/settings/tokens](https://github.com/settings/tokens)
-2. Click on **"Generate new token"** (classic).
-3. Set:
-   - **Note:** flux
-   - **Expiration:** Choose appropriate
-   - **Scopes:**  
-     ✅ `repo` – Full control of private repositories  
-     ✅ `workflow` – Update GitHub Actions workflows  
-4. Click **Generate token** and **copy the token**.
-
----
-
-## 📦 Step 5: Prepare GitHub Repository
-
-1. Create a repository:  
-   👉 [https://github.com/nanisravankumar/flux-cd.git](https://github.com/nanisravankumar/flux-cd.git)
-
-2. Clone the repo locally:
-
-   ```bash
-   git clone https://github.com/nanisravankumar/flux-cd.git
-   cd flux-cd
-   ```
-
-3. Create folder structure:
-
-   ```bash
-   mkdir -p clusters/my-cluster/flux-system
-   cd clusters/my-cluster/flux-system
-   touch gotk-components.yaml gotk-sync.yaml kustomization.yaml
-   ```
-
-4. Add the following content to `kustomization.yaml`:
-
-   ```yaml
-   apiVersion: kustomize.config.k8s.io/v1beta1
-   kind: Kustomization
-   resources:
-   - gotk-components.yaml
-   - gotk-sync.yaml
-   ```
-
-5. Commit and push:
-
-   ```bash
-   git add .
-   git commit -m "Initial commit for flux-system"
-   git push origin main
-   ```
-
----
-
-## 🚀 Step 6: Bootstrap FluxCD with GitHub
+Once all configurations are updated, you can check the FluxCD Kustomization and GitRepository resources to verify the changes.
 
 ```bash
-export GITLAB_TOKEN=#token value
+# Check GitRepository sources
+flux get sources git -n flux-system
 
-flux bootstrap github \
-  --owner=nanisravankumar \
-  --repository=flux-cd \
-  --branch=main \
-  --path=clusters/my-cluster \
-  --personal
+# Check Kustomization resources
+flux get kustomizations -A
 ```
 
----
-
-## 🧱 Step 7: Create Sample Application (Podinfo)
-
-1. Create the following structure:
-
-   ```
-   flux-cd/
-   ├── clusters/my-cluster/
-   │   ├── podinfo-kustomisation.yaml
-   │   └── podinfo-repo.yaml
-   └── kustomize/
-       ├── deployment.yaml
-       ├── service.yaml
-       └── kustomization.yaml
-   ```
-
-2. `clusters/my-cluster/podinfo-repo.yaml`:
-
-   ```yaml
-   apiVersion: source.toolkit.fluxcd.io/v1
-   kind: GitRepository
-   metadata:
-     name: podinfo
-     namespace: flux-system
-   spec:
-     interval: 1m0s
-     ref:
-       branch: master
-     secretRef:
-       name: flux-system
-     url: https://github.com/nanisravankumar/flux-cd.git
-   ```
-
-3. `clusters/my-cluster/podinfo-kustomisation.yaml`:
-
-   ```yaml
-   apiVersion: kustomize.toolkit.fluxcd.io/v1
-   kind: Kustomization
-   metadata:
-     name: podinfo
-     namespace: flux-system
-   spec: 
-     interval: 5m0s
-     path: ../../kustomize/
-     prune: true
-     sourceRef:
-       kind: GitRepository
-       name: podinfo
-     targetNamespace: default
-   ```
-
-4. `kustomize/deployment.yaml`:
-
-   ```yaml
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: podinfo
-     labels:
-       app: podinfo
-   spec:
-     replicas: 1
-     selector:
-       matchLabels:
-         app: podinfo
-     template:
-       metadata:
-         labels:
-           app: podinfo
-       spec:
-         containers:
-           - name: podinfo
-             image: nginx:latest
-             ports:
-               - containerPort: 80
-   ```
-
-5. `kustomize/service.yaml`:
-
-   ```yaml
-   apiVersion: v1
-   kind: Service
-   metadata:
-     name: podinfo
-     labels:
-       app: podinfo
-   spec:
-     selector:
-       app: podinfo
-     ports:
-       - port: 80
-         targetPort: 80
-     type: LoadBalancer
-   ```
-
-6. `kustomize/kustomization.yaml`:
-
-   ```yaml
-   resources:
-     - deployment.yaml
-     - service.yaml
-   ```
-
-7. Commit and push changes:
-
-   ```bash
-   git add .
-   git commit -m "Added podinfo GitRepository and Kustomization"
-   git push
-   ```
+Ensure that the `podinfo` repository is now deployed to both `default` and `prod` namespaces.
 
 ---
 
-## ✅ Verify Deployment
+## **Conclusion**
 
-```bash
-flux get kustomizations --watch
-kubectl get pods
-```
-
-🔁 To access the app (once deployed):
-
-```bash
-kubectl get svc
-kubectl port-forward pod/<podinfo-pod-name> 9898:80 --address 0.0.0.0
-```
+By following the steps above, you successfully transitioned from a single `default` namespace to a multi-environment setup, supporting both the `default` and `prod` namespaces, using FluxCD with Kustomize.
 
 ---
 
-## 🧪 Debugging Commands
+### **Repository Setup**
+For reference, the repository is configured as follows:
 
-```bash
-kubectl get gitrepo -n flux-system
-kubectl get secrets -n flux-system
-kubectl get secret flux-system -n flux-system -o jsonpath='{.data.password}' | base64 -d
-kubectl get clusterrolebindings | grep flux
+```plaintext
+https://github.com/nanisravankumar/flux-cd.git
 ```
