@@ -1,0 +1,6 @@
+resources:
+  - ../../base
+  - namespace.yaml
+
+patchesStrategicMerge:
+  - patch-env.yaml
