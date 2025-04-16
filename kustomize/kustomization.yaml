@@ -1,6 +1,13 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
+apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-resources:
-  - hpa.yaml
-  - deployment.yaml
-  - service.yaml
+metadata:
+  name: podinfo
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  path: ./kustomize
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: podinfo
+  targetNamespace: default
