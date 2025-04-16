@@ -2,7 +2,7 @@ Here’s a well-organized, step-by-step `README.md` file for your PoC using Flux
 
 ---
 
-# 🚀 FluxCD PoC with GitHub and AKS
+# 🚀 FluxCD PoC with GitHub and AKS K8s with Single Environment
 
 This Proof of Concept demonstrates how to set up [Flux CD](https://fluxcd.io) with GitHub for GitOps-based Kubernetes deployments.  
 We will be installing necessary tools, configuring GitHub integration, and deploying a sample application.
