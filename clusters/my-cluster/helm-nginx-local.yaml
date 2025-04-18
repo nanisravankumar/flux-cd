@@ -8,6 +8,7 @@ spec:
   chart:
     spec:
       chart: ./nginx-local
+      version: 0.1.0
       sourceRef:
         kind: GitRepository
         name: flux-cd-helm-repo
