@@ -10,10 +10,10 @@ spec:
   url: https://github.com/nanisravankumar/flux-cd.git
   ref:
     branch: flux-helmrepo
-  ignore: |
-    /*
-    !/nginx-local/
-    !/clusters/
+  # ignore: |
+  #   /*
+  #   !/nginx-local/
+  #   !/clusters/
 
 ---
 
