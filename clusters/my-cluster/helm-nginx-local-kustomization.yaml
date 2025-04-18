@@ -9,7 +9,7 @@ spec:
   interval: 1m0s
   url: https://github.com/nanisravankumar/flux-cd.git
   ref:
-    branch: flux-hlemrepo
+    branch: flux-helmrepo
   ignore: |
     /*
     !/nginx-local/
