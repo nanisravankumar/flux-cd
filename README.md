@@ -37,7 +37,17 @@ The FluxCD GitRepository resource for the `flux-system` is still pointing to the
 ```bash
 # Suspend the GitRepository to avoid auto-reconciliation during changes
 flux suspend source git flux-system -n flux-system
+```
+🔍 Check if suspended:
+```bash
+flux get sources git -n flux-system
+```
+Look for:
+Suspended: True ✅
+Ready: False or unchanged until resumed
 
+
+```bash
 # Edit the GitRepository resource
 kubectl edit gitrepository flux-system -n flux-system
 ```
@@ -57,6 +67,14 @@ Save the changes.
 ```bash
 flux resume source git flux-system -n flux-system
 ```
+Check if resumed:
+```bash
+flux get sources git -n flux-system
+```
+Look for:
+
+Ready: True ✅
+Suspended: False
 
 #### Reconcile the changes:
 
@@ -105,7 +123,9 @@ flux reconcile source git podinfo -n flux-system
 
 This ensures that FluxCD is using the correct branch for `podinfo`.
 
----
+#### watch live command 
+watch flux get sources git -n flux-system
+
 
 ### 4. **Update Kustomization Resources**
 
