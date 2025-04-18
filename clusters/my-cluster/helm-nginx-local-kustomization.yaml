@@ -26,7 +26,7 @@ spec:
   interval: 1m
   chart:
     spec:
-      chart: ../nginx-local
+      chart: ./nginx-local
       sourceRef:
         kind: GitRepository
         name: flux-cd-repo
